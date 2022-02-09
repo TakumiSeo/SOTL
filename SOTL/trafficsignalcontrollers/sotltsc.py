@@ -3,6 +3,7 @@ from itertools import cycle
 from collections import deque
 from SOTL.src.trafficsignalcontroller import TrafficSignalController
 
+
 class SOTLTSC(TrafficSignalController):
     def __init__(self, trc, tsc_id, mode, netdata, red_t, yellow_t, g_min, theta, omega, mu):
         super().__init__(trc, tsc_id, mode, netdata, red_t, yellow_t)
@@ -17,6 +18,7 @@ class SOTLTSC(TrafficSignalController):
         self.phase_red_lanes = self.get_phase_red_lanes()
         self.phase_deque = deque([self.green_phases[self.phase_idx]])
         self.trc = trc
+
     def next_phase(self):
         #stay in green phase for
         #minimum amount of time
@@ -47,7 +49,6 @@ class SOTLTSC(TrafficSignalController):
             next_green = self.green_phases[self.phase_idx % len(self.green_phases)]
             phases = self.get_intermediate_phases(self.phase, next_green)
             self.phase_deque.extend(phases+[next_green])
-
         next_phase = self.phase_deque.popleft()
         if next_phase is not self.phase:
             self.time_in_phase = 0
@@ -63,7 +64,6 @@ class SOTLTSC(TrafficSignalController):
 
     def update(self, data):
         self.data = data
-
         self.time_in_phase += 1
         g = self.green_phases[self.phase_idx % len(self.green_phases)]
         #vehicle time integral, used to control

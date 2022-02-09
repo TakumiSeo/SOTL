@@ -6,13 +6,15 @@ from SOTL.src.tscfactory import tsc_factory as tsc_f
 
 
 class SumoSim:
-    def __init__(self, trc, cfg_fp, sim_len, nogui, netdata, demand):
+    def __init__(self, trc, cfg_fp, sim_len, tsc, nogui, netdata, demand):
         self.trc = trc
         self.cfg_fp = cfg_fp
         self.sim_len = sim_len
+        self.tsc = tsc
         self.sumo_cmd = 'sumo' if nogui else 'sumo-gui'
         self.netdata = netdata
         self.demand = demand
+        self.queue_length = []
 
     def gen_sim(self):
         sumoBinary = checkBinary(self.sumo_cmd)
@@ -21,10 +23,10 @@ class SumoSim:
         self.v_travel_times = {}
         self.vehiclegen = None
         print('sumosim demand:{}'.format(self.demand))
-        self.vehiclegen = VehicleGen(self.trc,
-                                     self.netdata,
-                                     self.sim_len,
-                                     self.demand)
+        # self.vehiclegen = VehicleGen(self.trc,
+        #                              self.netdata,
+        #                              self.sim_len,
+        #                              self.demand)
         print('generate simulation')
 
     def get_traffic_lights(self):
@@ -62,9 +64,17 @@ class SumoSim:
         #             tls.remove(r)
         return set(tls)
 
+    def get_queue_length(self):
+        halt_N = self.trc.edge.getLastStepHaltingNumber("N2TL")
+        halt_S = self.trc.edge.getLastStepHaltingNumber("S2TL")
+        halt_E = self.trc.edge.getLastStepHaltingNumber("E2TL")
+        halt_W = self.trc.edge.getLastStepHaltingNumber("W2TL")
+        queue_length = halt_N + halt_S + halt_E + halt_W
+        return queue_length
+
     def update_netdata(self):
         tl_junc = self.get_traffic_lights()
-        tsc = {tl:TrafficSignalController(self.trc, tl, 'test', self.netdata, 2, 3)
+        tsc = {tl: TrafficSignalController(self.trc, tl, 'test', self.netdata, 2, 3)
                 for tl in tl_junc}
 
         for t in tsc:
@@ -85,6 +95,57 @@ class SumoSim:
         #create traffic signal controllers for the junctions with lights
         self.tsc = {tl: tsc_f(tl=tl, params=params, netdata=self.netdata, trc=self.trc) for tl in self.tl_junc}
 
+    def run_offset(self, offset):
+        while self.t < offset:
+            if self.vehiclegen:
+                self.vehiclegen.run()
+            self.update_travel_times()
+            self.sim_step()
+
+    def run(self):
+        while self.t < self.sim_len:
+            if self.vehiclegen:
+                self.vehiclegen.run()
+            self.update_travel_times()
+
+            for t in self.tsc:
+                self.tsc[t].run()
+            self.store_queue_length(self.get_queue_length())
+            self.sim_step()
+
+    def store_queue_length(self, q):
+        self.queue_length.append(q)
+
+    def transfer_queue_length(self):
+        return self.queue_length
+
+    def sim_step(self):
+        self.trc.simulationStep()
+        self.t += 1
+
+    def update_travel_times(self):
+        for v in self.trc.simulation.getDepartedIDList():
+            self.v_start_times[v] = self.t
+
+        for v in self.trc.simulation.getArrivedIDList():
+            self.v_travel_times[v] = self.t - self.v_start_times[v]
+            del self.v_start_times[v]
+
+    def get_travel_times(self):
+        return [self.v_travel_times[v] for v in self.v_travel_times]
+
+    def sim_stats(self):
+        tt = self.get_travel_times()
+        if len(tt) > 0:
+            return [str(int(np.mean(tt))), str(int(np.std(tt)))]
+        else:
+            return [str(int(0.0)), str(int(0.0))]
+
+    def get_tsc_metrics(self):
+        tsc_metrics = {}
+        for tsc in self.tsc:
+            tsc_metrics[tsc] = self.tsc[tsc].get_traffic_metrics_history()
+        return tsc_metrics
 
     def close(self):
         self.trc.close()

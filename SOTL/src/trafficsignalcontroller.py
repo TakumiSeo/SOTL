@@ -1,8 +1,7 @@
 import os, sys, copy
-
 import numpy as np
 
-from src.trafficmetrics import TrafficMetrics
+from SOTL.src.trafficmetrics import TrafficMetrics
 
 class TrafficSignalController:
     """Abstract base class for all traffic signal controller.
@@ -36,10 +35,7 @@ class TrafficSignalController:
         self.lane_capacity = np.array([float(self.netdata['lane'][lane]['length'])/7.5 for lane in self.incoming_lanes])
         #for collecting various traffic metrics at the intersection
         #can be extended in trafficmetric.py class to collect new metrics
-        if mode == 'train':
-            self.metric_args = ['delay']
-        if mode == 'test':
-            self.metric_args = ['queue', 'delay']
+        self.metric_args = ['queue', 'delay']
         self.trafficmetrics = TrafficMetrics(tsc_id, self.incoming_lanes, netdata, self.metric_args, mode)
 
         self.ep_rewards = []
@@ -53,9 +49,10 @@ class TrafficSignalController:
     def get_metrics(self):
         for m in self.metric_args:
             metric = self.trafficmetrics.get_metric(m)
+            print(metric)
 
     def get_traffic_metrics_history(self):
-        return {m:self.trafficmetrics.get_history(m) for m in self.metric_args}
+        return {m: self.trafficmetrics.get_history(m) for m in self.metric_args}
 
     def increment_controller(self):
         if self.phase_time == 0:
@@ -70,7 +67,7 @@ class TrafficSignalController:
         if phase == next_phase or phase == self.all_red:
             return []
         else:
-            yellow_phase = ''.join([ p if p == 'r' else 'y' for p in phase ])
+            yellow_phase = ''.join([p if p == 'r' else 'y' for p in phase])
             return [yellow_phase, self.all_red]
 
     def next_phase(self):
@@ -90,7 +87,7 @@ class TrafficSignalController:
         #around the traffic signal controller
         tl_data = self.trc.junction.getContextSubscriptionResults(self.id)
         #create empty incoming lanes for use else where
-        lane_vehicles = {l:{} for l in self.incoming_lanes}
+        lane_vehicles = {l: {} for l in self.incoming_lanes}
         if tl_data is not None:
             for v in tl_data:
                 lane = tl_data[v][self.trc.constants.VAR_LANE_ID]
@@ -102,9 +99,9 @@ class TrafficSignalController:
     def get_tl_green_phases(self):
         logic = self.trc.trafficlight.getCompleteRedYellowGreenDefinition(self.id)[0]
         #get only the green phases
-        green_phases = [ p.state for p in logic.getPhases()
+        green_phases = [p.state for p in logic.getPhases()
                          if 'y' not in p.state
-                         and ('G' in p.state or 'g' in p.state) ]
+                         and ('G' in p.state or 'g' in p.state)]
 
         #sort to ensure parity between sims (for RL actions)
         return sorted(green_phases)
@@ -119,7 +116,6 @@ class TrafficSignalController:
                     green_lanes.add(self.netdata['inter'][self.id]['tlsindex'][s])
                 elif a[s] == 'r':
                     red_lanes.add(self.netdata['inter'][self.id]['tlsindex'][s])
-
             ###some movements are on the same lane, removes duplicate lanes
             pure_green = [l for l in green_lanes if l not in red_lanes]
             if len(pure_green) == 0:

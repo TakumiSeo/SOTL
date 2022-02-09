@@ -67,24 +67,24 @@ class NetworkData:
 
         lanes = [net.getLane(lane) for lane in lane_ids]
         #lane data dict
-        lane_data = {lane:{} for lane in lane_ids}
+        lane_data = {lane: {} for lane in lane_ids}
 
         for lane in lanes:
             lane_id = lane.getID()
-            lane_data[ lane_id ]['length'] = lane.getLength()
-            lane_data[ lane_id ]['speed'] = lane.getSpeed()
-            lane_data[ lane_id ]['edge'] = str(lane.getEdge().getID())
+            lane_data[lane_id]['length'] = lane.getLength()
+            lane_data[lane_id]['speed'] = lane.getSpeed()
+            lane_data[lane_id]['edge'] = str(lane.getEdge().getID())
             #lane_data[ lane_id ]['outgoing'] = []
-            lane_data[ lane_id ]['outgoing'] = {}
+            lane_data[lane_id]['outgoing'] = {}
             ###.getOutgoing() returns a Connection type, which we use to determine the next lane
             moveid = []
             for conn in lane.getOutgoing():
                 out_id = str(conn.getToLane().getID())
-                lane_data[ lane_id ]['outgoing'][out_id] = {'dir':str(conn.getDirection()), 'index':conn.getTLLinkIndex()}
+                lane_data[lane_id]['outgoing'][out_id] = {'dir':str(conn.getDirection()), 'index':conn.getTLLinkIndex()}
                 moveid.append(str(conn.getDirection()))
-            lane_data[ lane_id ]['movement'] = ''.join(sorted(moveid))
+            lane_data[lane_id]['movement'] = ''.join(sorted(moveid))
             #create empty list for incoming lanes
-            lane_data[ lane_id ]['incoming'] = []
+            lane_data[lane_id]['incoming'] = []
 
         #determine incoming lanes using outgoing lanes data
         for lane in lane_data:

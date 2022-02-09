@@ -12,6 +12,15 @@ def import_train_configuration(config_file):
     config['total_episodes'] = content['simulation'].getint('total_episodes')
     config['max_steps'] = content['simulation'].getint('max_steps')
     config['sumocfg_file_name'] = content['dir']['sumocfg_file_name']
+    config['red'] = content['simulation'].getint('red')
+    config['green'] = content['simulation'].getint('green')
+    config['yellow'] = content['simulation'].getint('yellow')
+    config['mode'] = content['simulation'].get('mode')
+    config['tsc'] = content['tsc'].get('tsc')
+    config['mu'] = content['tsc'].getint('mu')
+    config['theta'] = content['tsc'].getint('theta')
+    config['omega'] = content['tsc'].getint('omega')
+
     return config
 
 
